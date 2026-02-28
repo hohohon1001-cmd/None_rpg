@@ -2,52 +2,53 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>나만의 웹 RPG - 완성형</title>
+    <title>나만의 웹 RPG - 무한 탐험</title>
     <style>
-        body { font-family: 'Malgun Gothic', sans-serif; text-align: center; margin-top: 10px; background-color: #222; color: #333; }
-        #game-board { display: flex; flex-direction: column; width: 600px; margin: 0 auto; padding: 15px; border-radius: 10px; background-color: #f4f4f9; box-shadow: 0 0 15px rgba(0,0,0,0.5); }
+        body { font-family: 'Malgun Gothic', sans-serif; text-align: center; background-color: #222; color: #333; margin: 0; padding: 20px; }
+        #start-screen { background: #fff; padding: 50px; border-radius: 10px; width: 300px; margin: 50px auto; box-shadow: 0 0 20px rgba(0,0,0,0.5); }
+        #game-board { display: none; flex-direction: column; width: 600px; margin: 0 auto; padding: 15px; border-radius: 10px; background-color: #f4f4f9; box-shadow: 0 0 15px rgba(0,0,0,0.5); }
+        
         .panel-row { display: flex; justify-content: space-between; margin-bottom: 10px; }
         .panel { background: #fff; padding: 10px; border-radius: 8px; border: 1px solid #ddd; width: 48%; box-sizing: border-box; }
-        
-        /* 상태창 & 인벤토리 */
         .stats { font-size: 0.9em; font-weight: bold; text-align: left; line-height: 1.6; }
-        .inventory { font-size: 0.9em; text-align: left; background: #e8f5e9; }
         
-        /* 맵 & 나침반 */
-        #map-display { font-size: 1.5em; letter-spacing: 2px; margin: 10px 0; background: #e0f7fa; padding: 10px; border-radius: 5px; text-align: center; }
-        #compass { font-size: 0.9em; background: #fff9c4; padding: 5px; border-radius: 5px; margin-bottom: 10px; }
-        
-        /* 로그 & 버튼 */
+        #map-display { font-size: 1.5em; letter-spacing: 2px; margin: 10px 0; background: #e0f7fa; padding: 10px; border-radius: 5px; text-align: center; line-height: 1.2; }
         #log { height: 120px; border: 1px solid #ccc; overflow-y: scroll; padding: 10px; text-align: left; background-color: #fff; font-size: 0.85em; margin-bottom: 10px; }
+        
         button { padding: 6px 12px; font-size: 0.9em; margin: 2px; cursor: pointer; border-radius: 5px; border: 1px solid #999; background: #fff; transition: 0.2s; }
         button:hover { background: #eee; }
         .btn-action { background: #ffcc80; font-weight: bold; border-color: #f57c00; }
-        .btn-system { background: #cfd8dc; }
+        .btn-skill { background: #81d4fa; font-weight: bold; border-color: #0288d1; }
+        
+        input { padding: 8px; font-size: 1em; width: 80%; margin-bottom: 10px; text-align: center; }
     </style>
 </head>
 <body>
+
+    <div id="start-screen">
+        <h2>전설의 시작</h2>
+        <p>용사의 이름을 입력하세요.</p>
+        <input type="text" id="hero-name" placeholder="이름 입력" onkeypress="if(event.keyCode==13) startGame()">
+        <br>
+        <button class="btn-action" onclick="startGame()">모험 시작하기</button>
+    </div>
+
     <div id="game-board">
-        <h2>전설의 용사 RPG</h2>
+        <h2 id="display-name">용사 RPG</h2>
         
         <div class="panel-row">
-            <div class="panel stats">
-                <div>👑 Lv: <span id="p-lv">1</span> (EXP: <span id="p-exp">0</span>/<span id="p-max-exp">20</span>)</div>
-                <div>❤️ HP: <span id="p-hp">100</span> / <span id="p-max-hp">100</span></div>
-                <div>⚔️ 공격력: <span id="p-atk">10</span> (+<span id="p-wlv">0</span>강화)</div>
-                <div>💰 골드: <span id="p-gold">0</span> G</div>
-            </div>
-            <div class="panel inventory">
-                <b>🎒 인벤토리</b><br>
-                🧪 포션: <span id="inv-potion">0</span>개 
-                <button onclick="usePotion()">사용</button><br>
-                💎 강화석: <span id="inv-stone">0</span>개<br>
-                <button class="btn-action" onclick="enhance()">대장간: 무기 강화(50G+석1)</button>
+            <div class="panel stats" style="width: 100%; display: flex; justify-content: space-around;">
+                <div>👑 Lv: <span id="p-lv">1</span> (<span id="p-exp">0</span>/<span id="p-max-exp">20</span>)</div>
+                <div>❤️ HP: <span id="p-hp">100</span>/<span id="p-max-hp">100</span></div>
+                <div>💧 MP: <span id="p-mp">30</span>/<span id="p-max-mp">30</span></div>
+                <div>⚔️ 공격력: <span id="p-atk">10</span></div>
+                <div>💰 골드: <span id="p-gold">0</span>G</div>
             </div>
         </div>
 
         <div class="panel-row">
             <div class="panel" style="width: 100%;">
-                <div id="compass">🧭 나침반 (주변 탐색) - 북:? 동:? 남:? 서:?</div>
+                <div style="font-size: 0.8em; color: #666;">(지도 끝으로 이동하면 새로운 구역이 생성됩니다)</div>
                 <div id="map-display"></div>
                 
                 <div id="move-btns">
@@ -58,84 +59,59 @@
                 </div>
 
                 <div id="battle-btns" style="display:none; background: #ffebee; padding: 10px; border-radius: 5px;">
-                    <p style="color:red; font-weight:bold;">😈 적 HP: <span id="m-hp">0</span></p>
-                    <button class="btn-action" onclick="attack()">⚔️ 공격하기</button>
+                    <p style="color:red; font-weight:bold;">😈 <span id="m-name">적</span> HP: <span id="m-hp">0</span></p>
+                    <button class="btn-action" onclick="attack(false)">⚔️ 일반 공격</button>
+                    <button class="btn-skill" onclick="attack(true)">🔥 파이어볼 (MP 10)</button>
                     <button onclick="run()">🏃 도망치기</button>
                 </div>
             </div>
         </div>
 
-        <div id="log">새로운 모험이 시작되었습니다!<br></div>
-        <div>
-            <button class="btn-system" onclick="saveGame()">💾 게임 저장하기</button>
-            <button class="btn-system" onclick="loadGame()">📂 불러오기</button>
-        </div>
+        <div id="log"></div>
     </div>
 
     <script>
         // --- 1. 데이터 설정 ---
-        let player = { lv: 1, hp: 100, maxHp: 100, exp: 0, maxExp: 20, atk: 10, weaponLv: 0, gold: 0, x: 0, y: 0 };
-        let inventory = { potion: 3, stone: 0 }; // 기본 지급 아이템
+        let player = { name: "용사", lv: 1, hp: 100, maxHp: 100, mp: 30, maxMp: 30, exp: 0, maxExp: 20, atk: 10, gold: 0, x: 2, y: 2 };
         let monster = { hp: 0, maxHp: 0, atk: 0, name: "" };
         let inBattle = false;
+        let mapData = [];
 
-        // 5x5 확장 맵 (1:마을, 0:평야, 2:숲, 3:바위산, 4:보스)
-        const mapData = [
-            [1, 0, 0, 2, 2],
-            [0, 0, 2, 2, 3],
-            [0, 2, 2, 3, 3],
-            [2, 2, 3, 3, 4],
-            [2, 3, 3, 4, 4]
-        ];
-        const mapSymbols = { 0: '🟩', 1: '🏰', 2: '🌲', 3: '⛰️', 4: '🌋' };
-        const mapNames = { 0: '평야', 1: '마을', 2: '숲', 3: '바위산', 4: '화산' };
+        const mapSymbols = { 0: '🟩', 1: '🏰', 2: '🌲', 3: '⛰️' };
 
-        // --- 2. 시스템 함수 ---
-        function updateScreen() {
-            document.getElementById('p-lv').innerText = player.lv;
-            document.getElementById('p-hp').innerText = player.hp;
-            document.getElementById('p-max-hp').innerText = player.maxHp;
-            document.getElementById('p-exp').innerText = player.exp;
-            document.getElementById('p-max-exp').innerText = player.maxExp;
-            document.getElementById('p-atk').innerText = player.atk + (player.weaponLv * 5);
-            document.getElementById('p-wlv').innerText = player.weaponLv;
-            document.getElementById('p-gold').innerText = player.gold;
+        // --- 2. 게임 시작 & 맵 생성 (무한 청크 시스템) ---
+        function startGame() {
+            let nameInput = document.getElementById('hero-name').value;
+            if(nameInput.trim() !== "") player.name = nameInput;
             
-            document.getElementById('inv-potion').innerText = inventory.potion;
-            document.getElementById('inv-stone').innerText = inventory.stone;
+            document.getElementById('start-screen').style.display = 'none';
+            document.getElementById('game-board').style.display = 'flex';
+            document.getElementById('display-name').innerText = `[${player.name}]의 끝없는 모험`;
             
-            drawMap();
-            updateCompass();
+            generateChunk(); // 첫 맵 생성
+            addLog(`<b>${player.name}</b>님의 모험이 시작되었습니다!`);
+            updateScreen();
         }
 
-        function addLog(text) {
-            let logDiv = document.getElementById('log');
-            logDiv.innerHTML += text + "<br>";
-            logDiv.scrollTop = logDiv.scrollHeight;
-        }
-
-        function saveGame() {
-            let saveData = { p: player, i: inventory };
-            localStorage.setItem('myRpgSaveData', JSON.stringify(saveData));
-            addLog("<b>💾 게임이 안전하게 저장되었습니다!</b>");
-        }
-
-        function loadGame() {
-            let saved = localStorage.getItem('myRpgSaveData');
-            if(saved) {
-                let data = JSON.parse(saved);
-                player = data.p; inventory = data.i;
-                addLog("<b>📂 저장된 모험을 불러왔습니다.</b>");
-                inBattle = false;
-                document.getElementById('move-btns').style.display = 'block';
-                document.getElementById('battle-btns').style.display = 'none';
-                updateScreen();
-            } else {
-                addLog("저장된 데이터가 없습니다.");
+        // 5x5 지도를 무작위로 생성하는 함수
+        function generateChunk() {
+            mapData = [];
+            for(let y=0; y<5; y++) {
+                let row = [];
+                for(let x=0; x<5; x++) {
+                    let rand = Math.random();
+                    if(rand < 0.6) row.push(0); // 60% 평야
+                    else if(rand < 0.8) row.push(2); // 20% 숲
+                    else if(rand < 0.95) row.push(3); // 15% 바위산
+                    else row.push(1); // 5% 마을
+                }
+                mapData.push(row);
             }
+            // 플레이어가 서 있는 곳은 무조건 평야로
+            mapData[player.y][player.x] = 0;
+            addLog("🗺️ <b>새로운 지역에 진입했습니다!</b>");
         }
 
-        // --- 3. 맵 & 나침반 함수 ---
         function drawMap() {
             let mapHtml = "";
             for (let y = 0; y < 5; y++) {
@@ -148,21 +124,37 @@
             document.getElementById('map-display').innerHTML = mapHtml;
         }
 
-        function updateCompass() {
-            let n = (player.y > 0) ? mapNames[mapData[player.y-1][player.x]] : "벽";
-            let s = (player.y < 4) ? mapNames[mapData[player.y+1][player.x]] : "벽";
-            let w = (player.x > 0) ? mapNames[mapData[player.y][player.x-1]] : "벽";
-            let e = (player.x < 4) ? mapNames[mapData[player.y][player.x+1]] : "벽";
-            document.getElementById('compass').innerText = `🧭 나침반 - 북:[${n}] 동:[${e}] 남:[${s}] 서:[${w}]`;
+        function updateScreen() {
+            document.getElementById('p-lv').innerText = player.lv;
+            document.getElementById('p-hp').innerText = player.hp;
+            document.getElementById('p-max-hp').innerText = player.maxHp;
+            document.getElementById('p-mp').innerText = player.mp;
+            document.getElementById('p-max-mp').innerText = player.maxMp;
+            document.getElementById('p-exp').innerText = player.exp;
+            document.getElementById('p-max-exp').innerText = player.maxExp;
+            document.getElementById('p-atk').innerText = player.atk;
+            document.getElementById('p-gold').innerText = player.gold;
+            drawMap();
         }
 
+        function addLog(text) {
+            let logDiv = document.getElementById('log');
+            logDiv.innerHTML += text + "<br>";
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
+        // --- 3. 무한 이동 시스템 ---
         function move(dx, dy) {
             if (inBattle) return;
             let nx = player.x + dx, ny = player.y + dy;
-            if (nx < 0 || nx > 4 || ny < 0 || ny > 4) {
-                addLog("그쪽으로는 갈 수 없습니다."); return;
-            }
-            player.x = nx; player.y = ny;
+            
+            // 지도 끝을 넘어가면 새로운 청크(맵) 생성
+            if (nx < 0) { player.x = 4; generateChunk(); }
+            else if (nx > 4) { player.x = 0; generateChunk(); }
+            else if (ny < 0) { player.y = 4; generateChunk(); }
+            else if (ny > 4) { player.y = 0; generateChunk(); }
+            else { player.x = nx; player.y = ny; }
+            
             updateScreen();
             checkEvent();
         }
@@ -170,65 +162,46 @@
         function checkEvent() {
             let tile = mapData[player.y][player.x];
             if (tile === 1) {
-                addLog("🏰 <b>마을</b>에 도착했습니다. 체력이 모두 회복됩니다!");
+                addLog("🏰 <b>마을</b>입니다! HP와 MP가 모두 회복되었습니다.");
                 player.hp = player.maxHp;
+                player.mp = player.maxMp;
                 updateScreen();
-            } else if (tile === 2 && Math.random() < 0.6) {
-                startBattle(40, 5, "고블린");
-            } else if (tile === 3 && Math.random() < 0.7) {
+            } else if (tile === 2 && Math.random() < 0.4) {
+                startBattle(40, 5, "숲 늑대");
+            } else if (tile === 3 && Math.random() < 0.5) {
                 startBattle(80, 12, "바위 골렘");
-            } else if (tile === 4) {
-                startBattle(300, 25, "화산 드래곤");
-            } else {
-                addLog("조용히 길을 지나갑니다.");
             }
         }
 
-        // --- 4. 인벤토리 & 강화 ---
-        function usePotion() {
-            if(inventory.potion > 0) {
-                inventory.potion--;
-                player.hp += 50;
-                if(player.hp > player.maxHp) player.hp = player.maxHp;
-                addLog("🧪 포션을 마셔 체력을 50 회복했습니다!");
-                updateScreen();
-            } else {
-                addLog("포션이 없습니다!");
-            }
-        }
-
-        function enhance() {
-            if (player.x !== 0 || player.y !== 0) {
-                addLog("강화는 마을(🏰)에서만 할 수 있습니다!"); return;
-            }
-            if(player.gold >= 50 && inventory.stone >= 1) {
-                player.gold -= 50;
-                inventory.stone -= 1;
-                player.weaponLv++;
-                addLog(`✨ <b>강화 성공!</b> 무기가 +${player.weaponLv}강이 되었습니다! (공격력 +5)`);
-                updateScreen();
-            } else {
-                addLog("강화 비용(50G)이나 강화석(1개)이 부족합니다.");
-            }
-        }
-
-        // --- 5. 전투 & 부활 ---
+        // --- 4. 전투 & 스킬 시스템 ---
         function startBattle(hp, atk, name) {
             inBattle = true;
             monster.hp = hp; monster.atk = atk; monster.name = name;
             document.getElementById('move-btns').style.display = 'none';
             document.getElementById('battle-btns').style.display = 'block';
+            document.getElementById('m-name').innerText = monster.name;
             document.getElementById('m-hp').innerText = monster.hp;
             addLog(`⚠️ 야생의 <b>${name}</b>(이)가 나타났다!`);
         }
 
-        function attack() {
-            let totalAtk = player.atk + (player.weaponLv * 5);
-            let dmg = Math.floor(Math.random() * 5) + totalAtk;
+        // isSkill이 true면 마나를 소모하고 강한 공격
+        function attack(isSkill) {
+            let dmg = 0;
+            if(isSkill) {
+                if(player.mp < 10) {
+                    addLog("💧 마나가 부족합니다!"); return;
+                }
+                player.mp -= 10;
+                dmg = Math.floor(Math.random() * 10) + (player.atk * 3); // 3배 데미지
+                addLog(`🔥 <b>파이어볼!</b> ${monster.name}에게 ${dmg}의 엄청난 피해!`);
+            } else {
+                dmg = Math.floor(Math.random() * 5) + player.atk;
+                addLog(`⚔️ 일반 공격! ${monster.name}에게 ${dmg}의 피해!`);
+            }
+
             monster.hp -= dmg;
             if (monster.hp < 0) monster.hp = 0;
             document.getElementById('m-hp').innerText = monster.hp;
-            addLog(`⚔️ ${monster.name}에게 ${dmg}의 피해!`);
 
             if (monster.hp === 0) { winBattle(); return; }
 
@@ -247,26 +220,21 @@
         function winBattle() {
             let gainExp = 15; let gainGold = Math.floor(Math.random() * 20) + 10;
             player.exp += gainExp; player.gold += gainGold;
-            addLog(`🏆 <b>전투 승리!</b> ${gainExp} EXP와 ${gainGold} G를 얻었습니다.`);
+            addLog(`🏆 <b>승리!</b> ${gainExp} EXP와 ${gainGold} G 획득!`);
             
-            // 아이템 드롭 확률
-            if(Math.random() < 0.3) { inventory.potion++; addLog("🎁 전리품으로 <b>포션</b>을 얻었습니다!"); }
-            if(Math.random() < 0.2) { inventory.stone++; addLog("🎁 전리품으로 <b>강화석</b>을 얻었습니다!"); }
-
             if (player.exp >= player.maxExp) {
                 player.lv++; player.exp -= player.maxExp;
-                player.maxExp += 15; player.maxHp += 20; player.atk += 3;
-                player.hp = player.maxHp;
+                player.maxExp += 15; player.maxHp += 20; player.maxMp += 10; player.atk += 3;
+                player.hp = player.maxHp; player.mp = player.maxMp;
                 addLog(`🎉 <b>레벨업! Lv.${player.lv}</b>이 되었습니다!`);
             }
             endBattle(); updateScreen();
         }
 
         function die() {
-            addLog("<b style='color:red;'>💀 눈앞이 깜깜해졌다... (가진 골드의 절반을 잃고 마을로 귀환합니다.)</b>");
-            player.gold = Math.floor(player.gold / 2);
-            player.hp = player.maxHp;
-            player.x = 0; player.y = 0; // 마을 좌표로 이동
+            addLog("<b style='color:red;'>💀 눈앞이 깜깜해졌다... (마을에서 부활합니다.)</b>");
+            player.hp = player.maxHp; player.mp = player.maxMp;
+            mapData[player.y][player.x] = 1; // 죽은 자리를 마을로 바꿔버림 (임시 부활처)
             endBattle(); updateScreen();
         }
 
@@ -276,7 +244,6 @@
             document.getElementById('battle-btns').style.display = 'none';
         }
 
-        updateScreen();
     </script>
 </body>
 </html>
