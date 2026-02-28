@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>나만의 웹 RPG</title>
+    <style>
+        body { font-family: 'Malgun Gothic', sans-serif; text-align: center; margin-top: 50px; }
+        #game-board { border: 2px solid #333; width: 400px; margin: 0 auto; padding: 20px; border-radius: 10px; background-color: #f9f9f9; }
+        .stats { display: flex; justify-content: space-between; font-size: 1.2em; margin-bottom: 20px; font-weight: bold; }
+        #log { height: 150px; border: 1px solid #ccc; overflow-y: scroll; padding: 10px; text-align: left; background-color: #fff; margin-bottom: 20px; }
+        button { padding: 10px 20px; font-size: 1em; margin: 5px; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+    <div id="game-board">
+        <h2>슬라임 숲의 전투</h2>
+        
+        <div class="stats">
+            <div>용사 HP: <span id="player-hp">100</span></div>
+            <div>슬라임 HP: <span id="monster-hp">50</span></div>
+        </div>
+
+        <div id="log">
+            야생의 슬라임이 나타났다!<br>
+        </div>
+
+        <button onclick="attack()">공격하기</button>
+        <button onclick="heal()">포션 마시기</button>
+    </div>
+
+    <script>
+        // 게임 변수 설정
+        let playerHp = 100;
+        let monsterHp = 50;
+
+        // 화면 업데이트 함수
+        function updateScreen() {
+            document.getElementById('player-hp').innerText = playerHp;
+            document.getElementById('monster-hp').innerText = monsterHp;
+        }
+
+        // 로그 기록 함수
+        function addLog(text) {
+            let logDiv = document.getElementById('log');
+            logDiv.innerHTML += text + "<br>";
+            logDiv.scrollTop = logDiv.scrollHeight; // 스크롤을 항상 아래로
+        }
+
+        // 공격 버튼 클릭 시
+        function attack() {
+            if (playerHp <= 0 || monsterHp <= 0) return; // 이미 죽었으면 실행 안 함
+
+            // 보드게임의 주사위처럼 5~15 사이의 랜덤 데미지 계산
+            let damage = Math.floor(Math.random() * 11) + 5; 
+            monsterHp -= damage;
+            if (monsterHp < 0) monsterHp = 0;
+            addLog("용사의 공격! 슬라임에게 " + damage + "의 데미지를 입혔습니다.");
+
+            updateScreen();
+
+            // 몬스터가 죽었는지 확인
+            if (monsterHp === 0) {
+                addLog("<b>전투 승리! 슬라임을 물리쳤습니다!</b>");
+                return;
+            }
+
+            // 몬스터의 반격
+            setTimeout(monsterAttack, 500); // 0.5초 뒤 반격
+        }
+
+        // 몬스터 반격 함수
+        function monsterAttack() {
+            let damage = Math.floor(Math.random() * 8) + 3;
+            playerHp -= damage;
+            if (playerHp < 0) playerHp = 0;
+            addLog("슬라임의 반격! 용사는 " + damage + "의 데미지를 입었습니다.");
+            
+            updateScreen();
+
+            if (playerHp === 0) {
+                addLog("<b style='color:red;'>용사가 쓰러졌습니다... 게임 오버.</b>");
+            }
+        }
+
+        // 회복 버튼 클릭 시
+        function heal() {
+            if (playerHp <= 0 || monsterHp <= 0) return;
+            
+            let healAmount = 20;
+            playerHp += healAmount;
+            if (playerHp > 100) playerHp = 100;
+            addLog("포션을 마셨습니다. 체력이 " + healAmount + " 회복되었습니다.");
+            
+            updateScreen();
+            setTimeout(monsterAttack, 500); // 아이템을 써도 턴이 넘어가서 공격받음
+        }
+    </script>
+
+</body>
+</html>
+
