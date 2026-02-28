@@ -2,101 +2,201 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>나만의 웹 RPG</title>
+    <title>나만의 웹 RPG - 확장판</title>
     <style>
-        body { font-family: 'Malgun Gothic', sans-serif; text-align: center; margin-top: 50px; }
+        body { font-family: 'Malgun Gothic', sans-serif; text-align: center; margin-top: 20px; }
         #game-board { border: 2px solid #333; width: 400px; margin: 0 auto; padding: 20px; border-radius: 10px; background-color: #f9f9f9; }
-        .stats { display: flex; justify-content: space-between; font-size: 1.2em; margin-bottom: 20px; font-weight: bold; }
-        #log { height: 150px; border: 1px solid #ccc; overflow-y: scroll; padding: 10px; text-align: left; background-color: #fff; margin-bottom: 20px; }
-        button { padding: 10px 20px; font-size: 1em; margin: 5px; cursor: pointer; }
+        .stats { display: flex; justify-content: space-between; font-size: 1.1em; margin-bottom: 10px; font-weight: bold; background: #eee; padding: 10px; border-radius: 5px; }
+        #map-display { font-size: 2em; letter-spacing: 5px; margin: 10px 0; background: #e0f7fa; padding: 10px; border-radius: 5px; }
+        #log { height: 150px; border: 1px solid #ccc; overflow-y: scroll; padding: 10px; text-align: left; background-color: #fff; margin-bottom: 10px; font-size: 0.9em; }
+        button { padding: 8px 15px; font-size: 1em; margin: 3px; cursor: pointer; border-radius: 5px; border: 1px solid #999; }
+        .controls { margin-bottom: 10px; }
     </style>
 </head>
 <body>
-
     <div id="game-board">
-        <h2>슬라임 숲의 전투</h2>
+        <h2>대모험 RPG</h2>
         
         <div class="stats">
-            <div>용사 HP: <span id="player-hp">100</span></div>
-            <div>슬라임 HP: <span id="monster-hp">50</span></div>
+            <div>Lv: <span id="p-lv">1</span></div>
+            <div>HP: <span id="p-hp">100</span>/<span id="p-max-hp">100</span></div>
+            <div>EXP: <span id="p-exp">0</span>/<span id="p-max-exp">20</span></div>
         </div>
 
-        <div id="log">
-            야생의 슬라임이 나타났다!<br>
+        <div id="map-display">
+            </div>
+
+        <div class="controls" id="move-btns">
+            <button onclick="move(0, -1)">위로</button><br>
+            <button onclick="move(-1, 0)">왼쪽</button>
+            <button onclick="move(1, 0)">오른쪽</button><br>
+            <button onclick="move(0, 1)">아래로</button>
         </div>
 
-        <button onclick="attack()">공격하기</button>
-        <button onclick="heal()">포션 마시기</button>
+        <div class="controls" id="battle-btns" style="display:none;">
+            <p><b>적 HP: <span id="m-hp">0</span></b></p>
+            <button onclick="attack()">공격하기</button>
+            <button onclick="run()">도망치기</button>
+        </div>
+
+        <div id="log">게임을 시작합니다. 방향키 버튼으로 이동하세요!<br></div>
     </div>
 
     <script>
-        // 게임 변수 설정
-        let playerHp = 100;
-        let monsterHp = 50;
+        // 플레이어 정보
+        let player = { lv: 1, hp: 100, maxHp: 100, exp: 0, maxExp: 20, x: 0, y: 0 };
+        let monster = { hp: 0, maxHp: 0 };
+        let inBattle = false;
 
-        // 화면 업데이트 함수
+        // 3x3 맵 구조 (0: 평지, 1: 마을, 2: 숲, 3: 드래곤)
+        const mapData = [
+            [1, 0, 2],
+            [0, 2, 2],
+            [2, 2, 3] 
+        ];
+        
+        // 맵에 쓰일 이모티콘
+        const mapSymbols = { 0: '🟩', 1: '🏰', 2: '🌲', 3: '🐉' };
+
+        // 화면 갱신 함수
         function updateScreen() {
-            document.getElementById('player-hp').innerText = playerHp;
-            document.getElementById('monster-hp').innerText = monsterHp;
+            document.getElementById('p-lv').innerText = player.lv;
+            document.getElementById('p-hp').innerText = player.hp;
+            document.getElementById('p-max-hp').innerText = player.maxHp;
+            document.getElementById('p-exp').innerText = player.exp;
+            document.getElementById('p-max-exp').innerText = player.maxExp;
+            drawMap();
         }
 
-        // 로그 기록 함수
+        // 맵 그리기 함수
+        function drawMap() {
+            let mapHtml = "";
+            for (let y = 0; y < 3; y++) {
+                for (let x = 0; x < 3; x++) {
+                    if (player.x === x && player.y === y) {
+                        mapHtml += '🧑'; // 플레이어 현재 위치
+                    } else {
+                        mapHtml += mapSymbols[mapData[y][x]];
+                    }
+                }
+                mapHtml += "<br>";
+            }
+            document.getElementById('map-display').innerHTML = mapHtml;
+        }
+
         function addLog(text) {
             let logDiv = document.getElementById('log');
             logDiv.innerHTML += text + "<br>";
-            logDiv.scrollTop = logDiv.scrollHeight; // 스크롤을 항상 아래로
+            logDiv.scrollTop = logDiv.scrollHeight;
         }
 
-        // 공격 버튼 클릭 시
-        function attack() {
-            if (playerHp <= 0 || monsterHp <= 0) return; // 이미 죽었으면 실행 안 함
+        // 이동 함수
+        function move(dx, dy) {
+            if (inBattle) return; // 전투 중엔 이동 불가
 
-            // 보드게임의 주사위처럼 5~15 사이의 랜덤 데미지 계산
-            let damage = Math.floor(Math.random() * 11) + 5; 
-            monsterHp -= damage;
-            if (monsterHp < 0) monsterHp = 0;
-            addLog("용사의 공격! 슬라임에게 " + damage + "의 데미지를 입혔습니다.");
+            let nx = player.x + dx;
+            let ny = player.y + dy;
 
-            updateScreen();
-
-            // 몬스터가 죽었는지 확인
-            if (monsterHp === 0) {
-                addLog("<b>전투 승리! 슬라임을 물리쳤습니다!</b>");
+            // 맵 밖으로 벗어나는지 확인
+            if (nx < 0 || nx > 2 || ny < 0 || ny > 2) {
+                addLog("그쪽으로는 갈 수 없습니다.");
                 return;
             }
 
-            // 몬스터의 반격
-            setTimeout(monsterAttack, 500); // 0.5초 뒤 반격
+            player.x = nx;
+            player.y = ny;
+            addLog("이동했습니다.");
+            updateScreen();
+            checkEvent(); // 이동한 칸에 무엇이 있는지 확인
         }
 
-        // 몬스터 반격 함수
-        function monsterAttack() {
-            let damage = Math.floor(Math.random() * 8) + 3;
-            playerHp -= damage;
-            if (playerHp < 0) playerHp = 0;
-            addLog("슬라임의 반격! 용사는 " + damage + "의 데미지를 입었습니다.");
-            
-            updateScreen();
-
-            if (playerHp === 0) {
-                addLog("<b style='color:red;'>용사가 쓰러졌습니다... 게임 오버.</b>");
+        // 타일 이벤트 확인 함수
+        function checkEvent() {
+            let tile = mapData[player.y][player.x];
+            if (tile === 1) {
+                addLog("마을에 도착했습니다. HP가 모두 회복됩니다! 🛏️");
+                player.hp = player.maxHp;
+                updateScreen();
+            } else if (tile === 2) {
+                if (Math.random() < 0.5) { // 50% 확률로 몬스터 조우
+                    startBattle(50, "슬라임");
+                } else {
+                    addLog("평화로운 숲입니다.");
+                }
+            } else if (tile === 3) {
+                startBattle(150, "드래곤");
             }
         }
 
-        // 회복 버튼 클릭 시
-        function heal() {
-            if (playerHp <= 0 || monsterHp <= 0) return;
-            
-            let healAmount = 20;
-            playerHp += healAmount;
-            if (playerHp > 100) playerHp = 100;
-            addLog("포션을 마셨습니다. 체력이 " + healAmount + " 회복되었습니다.");
-            
-            updateScreen();
-            setTimeout(monsterAttack, 500); // 아이템을 써도 턴이 넘어가서 공격받음
+        // 전투 시작
+        function startBattle(hp, name) {
+            inBattle = true;
+            monster.hp = hp;
+            document.getElementById('move-btns').style.display = 'none';
+            document.getElementById('battle-btns').style.display = 'block';
+            document.getElementById('m-hp').innerText = monster.hp;
+            addLog(`앗! 야생의 <b>${name}</b>(이)가 나타났다! ⚔️`);
         }
-    </script>
 
+        // 공격
+        function attack() {
+            // 레벨이 오를수록 데미지가 강해집니다
+            let dmg = Math.floor(Math.random() * 10) + 5 + (player.lv * 2);
+            monster.hp -= dmg;
+            if (monster.hp < 0) monster.hp = 0;
+            document.getElementById('m-hp').innerText = monster.hp;
+            addLog(`몬스터에게 ${dmg}의 피해를 입혔습니다!`);
+
+            if (monster.hp === 0) {
+                winBattle();
+                return;
+            }
+
+            // 몬스터 반격
+            let mDmg = Math.floor(Math.random() * 8) + 3;
+            player.hp -= mDmg;
+            if (player.hp < 0) player.hp = 0;
+            addLog(`몬스터의 공격! ${mDmg}의 피해를 입었습니다.`);
+            updateScreen();
+
+            if (player.hp === 0) {
+                addLog("<b style='color:red;'>게임 오버... 새로고침하여 다시 시작하세요.</b>");
+                document.getElementById('battle-btns').style.display = 'none';
+            }
+        }
+
+        // 도망치기
+        function run() {
+            addLog("무사히 도망쳤습니다! 🏃");
+            endBattle();
+        }
+
+        // 전투 승리 및 레벨업 처리
+        function winBattle() {
+            addLog("<b>전투 승리!</b> 경험치를 10 얻었습니다.");
+            player.exp += 10;
+            
+            if (player.exp >= player.maxExp) {
+                player.lv += 1;
+                player.exp -= player.maxExp;
+                player.maxExp += 10; // 다음 레벨업에 필요한 경험치 증가
+                player.maxHp += 20;  // 최대 체력 증가
+                player.hp = player.maxHp;
+                addLog(`🎉 <b>레벨업! Lv.${player.lv}이 되었습니다!</b> 최대 체력이 오르고 모두 회복됩니다.`);
+            }
+            
+            endBattle();
+            updateScreen();
+        }
+
+        // 전투 종료
+        function endBattle() {
+            inBattle = false;
+            document.getElementById('move-btns').style.display = 'block'; // 이동 버튼 다시 표시
+            document.getElementById('battle-btns').style.display = 'none'; // 전투 버튼 숨김
+        }
+
+        updateScreen(); // 처음 시작할 때 화면 한번 그려주기
+    </script>
 </body>
 </html>
-
